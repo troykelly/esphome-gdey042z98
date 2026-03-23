@@ -13,6 +13,11 @@
 namespace esphome {
 namespace gdey042z98 {
 
+// Display dimensions at namespace scope so .cpp can use them
+static const uint16_t EPD_WIDTH = 400;
+static const uint16_t EPD_HEIGHT = 300;
+static const uint32_t EPD_PLANE_SIZE = EPD_WIDTH * EPD_HEIGHT / 8;  // 15000 bytes per plane
+
 class GDEY042Z98 : public display::DisplayBuffer,
                    public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW,
                                          spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_2MHZ> {
@@ -35,15 +40,10 @@ class GDEY042Z98 : public display::DisplayBuffer,
 
   void fill(Color color) override;
 
-  // Display dimensions
-  static const uint16_t WIDTH = 400;
-  static const uint16_t HEIGHT = 300;
-
  protected:
   void draw_absolute_pixel_internal(int x, int y, Color color) override;
-  int get_width_internal() override { return WIDTH; }
-  int get_height_internal() override { return HEIGHT; }
-  uint32_t get_buffer_length_() override;
+  int get_width_internal() override { return EPD_WIDTH; }
+  int get_height_internal() override { return EPD_HEIGHT; }
 
   // SPI helpers
   void command_(uint8_t cmd);
