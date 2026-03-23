@@ -13,10 +13,9 @@
 namespace esphome {
 namespace gdey042z98 {
 
-// Display dimensions at namespace scope so .cpp can use them
 static const uint16_t EPD_WIDTH = 400;
 static const uint16_t EPD_HEIGHT = 300;
-static const uint32_t EPD_PLANE_SIZE = EPD_WIDTH * EPD_HEIGHT / 8;  // 15000 bytes per plane
+static const uint32_t EPD_PLANE_SIZE = EPD_WIDTH * EPD_HEIGHT / 8;
 
 class GDEY042Z98 : public display::DisplayBuffer,
                    public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW,

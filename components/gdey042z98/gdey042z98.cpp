@@ -34,7 +34,7 @@ void GDEY042Z98::setup() {
   // Setup SPI
   this->spi_setup();
 
-  // Allocate buffer: two planes (black/white + red)
+  // Allocate buffer (two planes: black/white + red)
   this->init_internal_(2 * EPD_PLANE_SIZE);
   if (this->buffer_ == nullptr) {
     ESP_LOGE(TAG, "Failed to allocate display buffer!");
@@ -43,8 +43,8 @@ void GDEY042Z98::setup() {
   }
 
   // Fill buffer with white (black plane = 0xFF, red plane = 0x00)
-  memset(this->buffer_, 0xFF, EPD_PLANE_SIZE);                    // black/white plane: all white
-  memset(this->buffer_ + EPD_PLANE_SIZE, 0x00, EPD_PLANE_SIZE);   // red plane: no red
+  memset(this->buffer_, 0xFF, EPD_PLANE_SIZE);          // black/white plane: all white
+  memset(this->buffer_ + EPD_PLANE_SIZE, 0x00, EPD_PLANE_SIZE);  // red plane: no red
 
   ESP_LOGD(TAG, "Buffer allocated: %u bytes (%u per plane)", 2 * EPD_PLANE_SIZE, EPD_PLANE_SIZE);
 }
@@ -61,8 +61,7 @@ void GDEY042Z98::update() {
   this->write_buffer_(0x24, this->buffer_, EPD_PLANE_SIZE);
 
   // Write red buffer to RAM (command 0x26)
-  // The red plane needs to be inverted when sending to the controller
-  // In GxEPD2: writeImage for color uses !invert, which inverts the data
+  // Red data is inverted per GxEPD2 reference
   ESP_LOGD(TAG, "Writing red buffer to display RAM...");
   this->set_partial_ram_area_(0, 0, EPD_WIDTH, EPD_HEIGHT);
   this->command_(0x26);
@@ -125,18 +124,16 @@ void GDEY042Z98::draw_absolute_pixel_internal(int x, int y, Color color) {
   uint32_t byte_pos = (y * EPD_WIDTH + x) / 8;
   uint8_t bit_mask = 0x80 >> (x % 8);
 
-  // In the black/white plane: 1 = white, 0 = black
-  // In the red plane: 1 = red, 0 = not red
   if (color.red > 127 && color.green < 128 && color.blue < 128) {
-    // Red pixel
+    // Red pixel: white in bw plane, set in red plane
     this->buffer_[byte_pos] |= bit_mask;
     this->buffer_[EPD_PLANE_SIZE + byte_pos] |= bit_mask;
   } else if (color.is_on()) {
-    // Black pixel
+    // Black pixel: black in bw plane, clear red plane
     this->buffer_[byte_pos] &= ~bit_mask;
     this->buffer_[EPD_PLANE_SIZE + byte_pos] &= ~bit_mask;
   } else {
-    // White pixel
+    // White pixel: white in bw plane, clear red plane
     this->buffer_[byte_pos] |= bit_mask;
     this->buffer_[EPD_PLANE_SIZE + byte_pos] &= ~bit_mask;
   }
@@ -189,7 +186,7 @@ bool GDEY042Z98::wait_until_idle_(uint32_t timeout_ms) {
   }
 
   uint32_t start = millis();
-  while (this->busy_pin_->digital_read()) {  // HIGH = busy for SSD1683
+  while (this->busy_pin_->digital_read()) {
     if (millis() - start > timeout_ms) {
       ESP_LOGW(TAG, "Timeout waiting for display idle after %ums", timeout_ms);
       return false;
@@ -206,7 +203,6 @@ void GDEY042Z98::init_display_() {
 
   ESP_LOGD(TAG, "Initializing display...");
 
-  // Hardware reset
   this->reset_();
 
   // Software reset (0x12)
@@ -214,10 +210,9 @@ void GDEY042Z98::init_display_() {
   delay(10);
 
   // Driver output control (0x01)
-  // Set gate driver output: (HEIGHT-1) = 299 = 0x012B
   this->command_(0x01);
-  this->data_((EPD_HEIGHT - 1) % 256);  // 0x2B = 43
-  this->data_((EPD_HEIGHT - 1) / 256);  // 0x01
+  this->data_((EPD_HEIGHT - 1) % 256);
+  this->data_((EPD_HEIGHT - 1) / 256);
   this->data_(0x00);
 
   // Border waveform control (0x3C)
